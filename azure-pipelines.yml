@@ -1,0 +1,32 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- script: echo Hello, world!
+  displayName: 'Run a one-line script'
+
+- script: |
+    echo Add other tasks to build, test, and deploy your project.
+    echo See https://aka.ms/yaml
+  displayName: 'Run a multi-line script'
+
+- task: AzureResourceManagerTemplateDeployment@3
+  inputs:
+    deploymentScope: 'Resource Group'
+    azureResourceManagerConnection: 'Visual Studio Professional Subscription(24b500de-9a4f-4853-b175-c46c2d25fd9c)'
+    subscriptionId: '24b500de-9a4f-4853-b175-c46c2d25fd9c'
+    action: 'Create Or Update Resource Group'
+    resourceGroupName: 'az-course'
+    location: 'West Europe'
+    templateLocation: 'Linked artifact'
+    csmFile: 'infra/main.bicep'
+    deploymentMode: 'Validation'
+    deploymentName: 'depl-1'
