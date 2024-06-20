@@ -1,0 +1,6 @@
+name: Azure deployment
+
+on: [workflow_dispatch]
+
+jobs:
+  
