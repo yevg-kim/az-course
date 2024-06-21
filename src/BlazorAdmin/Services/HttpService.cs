@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using BlazorShared;
+using BlazorShared.Helpers;
 using BlazorShared.Models;
 using Microsoft.Extensions.Options;
 
@@ -25,7 +26,8 @@ public class HttpService
     public async Task<T> HttpGet<T>(string uri)
         where T : class
     {
-        var result = await _httpClient.GetAsync($"{_apiUrl}{uri}");
+        
+        var result = await _httpClient.GetAsync(UrlHelper.Combine(_apiUrl, uri));
         if (!result.IsSuccessStatusCode)
         {
             return null;
@@ -37,7 +39,7 @@ public class HttpService
     public async Task<T> HttpDelete<T>(string uri, int id)
         where T : class
     {
-        var result = await _httpClient.DeleteAsync($"{_apiUrl}{uri}/{id}");
+        var result = await _httpClient.DeleteAsync(UrlHelper.Combine(_apiUrl, uri, id.ToString()));
         if (!result.IsSuccessStatusCode)
         {
             return null;
@@ -51,7 +53,7 @@ public class HttpService
     {
         var content = ToJson(dataToSend);
 
-        var result = await _httpClient.PostAsync($"{_apiUrl}{uri}", content);
+        var result = await _httpClient.PostAsync(UrlHelper.Combine(_apiUrl, uri), content);
         if (!result.IsSuccessStatusCode)
         {
             var exception = JsonSerializer.Deserialize<ErrorDetails>(await result.Content.ReadAsStringAsync(), new JsonSerializerOptions
@@ -71,7 +73,7 @@ public class HttpService
     {
         var content = ToJson(dataToSend);
 
-        var result = await _httpClient.PutAsync($"{_apiUrl}{uri}", content);
+        var result = await _httpClient.PutAsync(UrlHelper.Combine(_apiUrl, uri), content);
         if (!result.IsSuccessStatusCode)
         {
             _toastService.ShowToast("Error", ToastLevel.Error);

@@ -1,7 +1,5 @@
-﻿using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using BlazorShared;
+﻿using BlazorShared;
+using BlazorShared.Helpers;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
@@ -20,7 +18,7 @@ public class ApiHealthCheck : IHealthCheck
         HealthCheckContext context,
         CancellationToken cancellationToken = default(CancellationToken))
     {
-        string myUrl = _baseUrlConfiguration.ApiBase + "catalog-items";
+        string myUrl = UrlHelper.Combine(_baseUrlConfiguration.ApiBase, "catalog-items");
         var client = new HttpClient();
         var response = await client.GetAsync(myUrl);
         var pageContents = await response.Content.ReadAsStringAsync();
