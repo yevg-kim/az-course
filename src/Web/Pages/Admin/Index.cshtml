@@ -1,5 +1,9 @@
 ﻿@page
 @using BlazorAdmin
+@using BlazorShared
+@using Microsoft.Extensions.Options
+
+@inject IOptions<BaseUrlConfiguration> configuration
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
@@ -63,6 +67,7 @@
             document.body.classList.remove("body-no-overflow");
         };
 
+        localStorage.setItem("settings", '@Html.Raw(configuration.Value.ToJson())');
     </script>
 </head>
 <body>

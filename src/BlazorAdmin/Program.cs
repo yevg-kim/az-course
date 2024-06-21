@@ -35,15 +35,28 @@ builder.Services.AddBlazorServices();
 
 builder.Logging.AddConfiguration(builder.Configuration.GetRequiredSection("Logging"));
 
-await ClearLocalStorageCache(builder.Services);
+await WorkWithLocalStorage(builder);
 
 await builder.Build().RunAsync();
 
-static async Task ClearLocalStorageCache(IServiceCollection services)
+static async Task WorkWithLocalStorage(WebAssemblyHostBuilder builder)
 {
-    var sp = services.BuildServiceProvider();
+    var sp = builder.Services.BuildServiceProvider();
     var localStorageService = sp.GetRequiredService<ILocalStorageService>();
 
+    await UpdateSettingsFromLocalStorage(localStorageService, builder.Services);
+    await ClearLocalStorageCache(localStorageService);
+}
+
+static async Task UpdateSettingsFromLocalStorage(ILocalStorageService localStorageService, IServiceCollection services)
+{
+    var settings = await localStorageService.GetItemAsync<BaseUrlConfiguration>("settings");
+    services.PostConfigure<BaseUrlConfiguration>(config => config.ApiBase = settings.ApiBase);
+}
+
+static async Task ClearLocalStorageCache(ILocalStorageService localStorageService)
+{
     await localStorageService.RemoveItemAsync(typeof(CatalogBrand).Name);
     await localStorageService.RemoveItemAsync(typeof(CatalogType).Name);
+    await localStorageService.RemoveItemAsync("settings");
 }

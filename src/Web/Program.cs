@@ -6,6 +6,7 @@ using BlazorAdmin;
 using BlazorAdmin.Services;
 using Blazored.LocalStorage;
 using BlazorShared;
+using BlazorShared.Helpers;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
@@ -98,9 +99,12 @@ builder.Services.Configure<ServiceConfig>(config =>
 var configSection = builder.Configuration.GetRequiredSection(BaseUrlConfiguration.CONFIG_NAME);
 builder.Services.Configure<BaseUrlConfiguration>(configSection);
 var baseUrlConfig = configSection.Get<BaseUrlConfiguration>();
+var envApiBase = builder.Configuration["CUSTOM_PUBLIC_API_ENDPOINT"];
+if(!string.IsNullOrEmpty(envApiBase))
+    builder.Services.PostConfigure<BaseUrlConfiguration>(config => config.ApiBase = UrlHelper.Combine(envApiBase, "api"));
 
 // Blazor Admin Required Services for Prerendering
-builder.Services.AddScoped<HttpClient>(s => new HttpClient
+builder.Services.AddScoped(s => new HttpClient
 {
     BaseAddress = new Uri(baseUrlConfig!.WebBase)
 });
