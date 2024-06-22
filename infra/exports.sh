@@ -1,0 +1,5 @@
+export AZURE_KEYVAULT_NAME='azcourse-keyvault'
+export AZURE_SQL_DBA_LOGIN='azcourse-admin'
+export AZURE_SQL_DBA_PASS='<dba_pass>'
+export AZURE_SQL_APP_LOGIN='dblogin'
+export AZURE_SQL_APP_PASS='<app_pass>'
