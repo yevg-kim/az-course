@@ -41,6 +41,13 @@ var webAppCommonSettings = {
   CUSTOM_PUBLIC_API_ENDPOINT: publicApi.outputs.url
 }
 
+module applicationInsights 'appinsights.bicep' = {
+  name: 'applicationInsightsDeployment'
+  params:{
+    name: '${resourcePrefix}app-insights'
+  }
+}
+
 module primaryWebApp 'appservice.bicep' = {
   name: 'primaryWebAppDeployment'
   params:{
@@ -70,6 +77,8 @@ module publicApi 'appservice.bicep' = {
     name: '${resourcePrefix}public-api'
     location: primaryAppServicePlan.outputs.planLocation
     serverFarmId: primaryAppServicePlan.outputs.serverFarmId
+    appInsightsId: applicationInsights.outputs.id
+    appInsightsConnectionString: applicationInsights.outputs.connectionString
     customAppSettings: {
       UseOnlyInMemoryDatabase:true
     }

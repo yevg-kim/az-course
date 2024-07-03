@@ -81,6 +81,7 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddControllers();
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 builder.Configuration.AddEnvironmentVariables();
@@ -122,7 +123,11 @@ builder.Services.AddSwaggerGen(c =>
             });
 });
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
+
+app.UseHealthChecks("/health");
 
 app.Logger.LogInformation("PublicApi App created...");
 

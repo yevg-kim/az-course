@@ -5,16 +5,27 @@ param secondDeploymentSlotName string = 'not-set'
 param identity object = {}
 param allowedOrigins array = []
 param customAppSettings object = {}
+param healthCheckPath string = ''
+param alwaysOn bool = false
+param appInsightsId string = ''
+param appInsightsConnectionString string = ''
 
 var webAppProperties = {
   serverFarmId: serverFarmId
   siteConfig:{
+    healthCheckPath: healthCheckPath
     linuxFxVersion:'dotnetcore|8.0'
-    alwaysOn: true
+    alwaysOn: alwaysOn
     cors:{
       allowedOrigins: allowedOrigins
     }
   }
+}
+
+var appInsightsSettings = empty(appInsightsId) ? {} : {
+  APPINSIGHTS_INSTRUMENTATIONKEY: appInsightsId
+  ApplicationInsightsAgent_EXTENSION_VERSION: '~2'
+  APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsConnectionString 
 }
 
 resource webApplication 'Microsoft.Web/sites@2023-12-01' = {
@@ -24,11 +35,11 @@ resource webApplication 'Microsoft.Web/sites@2023-12-01' = {
   identity: !empty(identity) ? identity : null
   properties: webAppProperties
 
-  resource configAppSettings 'config@2023-12-01' = if (!empty(customAppSettings)) {
+  resource configAppSettings 'config@2023-12-01' = {
     name: 'appsettings'
-    properties: union(customAppSettings, {
+    properties: union(customAppSettings, appInsightsSettings, {
       SCM_DO_BUILD_DURING_DEPLOYMENT: false
-      ENABLE_ORYX_BUILD: false      
+      ENABLE_ORYX_BUILD: false
     })
   }
   
