@@ -6,6 +6,20 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
   location: resourceGroup().location
 }
 
+resource roleDef 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
+  name: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+  scope: subscription()
+}
+
+resource contributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' ={
+  name: guid('contributor')
+  properties: {
+    principalId: managedIdentity.properties.principalId
+    roleDefinitionId: roleDef.id
+    principalType: 'ServicePrincipal'
+  }
+}
+
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
   location: resourceGroup().location
@@ -22,6 +36,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
           secrets: [
             'list'
             'get'
+            'set'
           ]
         }
       }

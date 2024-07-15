@@ -11,6 +11,8 @@ param dbLogin string
 param sqlServerPassword string
 @secure()
 param dbPassword string
+@secure()
+param funcCode string
 
 var resourcePrefix = 'azcourse-'
 
@@ -32,20 +34,28 @@ module secondaryAppServicePlan 'appserviceplan.bicep' = {
   }
 }
 
-var webAppCommonSettings = {
+var webAppCommonSettings = union (appInsightsSettings, {
   ASPNETCORE_ENVIRONMENT:'Production'
   AZURE_CLIENT_ID: keyVaultAndUami.outputs.uamiClientId
   AZURE_SQL_IDENTITY_CONNECTION_STRING_KEY: db[0].outputs.keyVaultConnectionStringKey
   AZURE_SQL_CATALOG_CONNECTION_STRING_KEY: db[1].outputs.keyVaultConnectionStringKey
+  CUSTOM_RESERVE_SERVICE_ENDPOINT: azureFunction.outputs.funcUrl
+  AZURE_FUNCTION_CODE_KEY: azureFunction.outputs.funcCodeKey
   AZURE_KEY_VAULT_ENDPOINT: keyVaultAndUami.outputs.kvEndpoint
   CUSTOM_PUBLIC_API_ENDPOINT: publicApi.outputs.url
-}
+})
 
 module applicationInsights 'appinsights.bicep' = {
   name: 'applicationInsightsDeployment'
   params:{
     name: '${resourcePrefix}app-insights'
   }
+}
+
+var appInsightsSettings = {
+  APPINSIGHTS_INSTRUMENTATIONKEY: applicationInsights.outputs.id
+  ApplicationInsightsAgent_EXTENSION_VERSION: '~2'
+  APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.outputs.connectionString
 }
 
 module primaryWebApp 'appservice.bicep' = {
@@ -57,6 +67,20 @@ module primaryWebApp 'appservice.bicep' = {
     secondDeploymentSlotName: 'staging'
     customAppSettings: webAppCommonSettings
     identity: keyVaultAndUami.outputs.uami
+  }
+}
+
+module azureFunction 'azurefunction.bicep' = {
+  name: 'appFunctionDeployment'
+  params:{
+    appName:'${resourcePrefix}func-app'
+    planName:'${resourcePrefix}func-plan'
+    funcName:'${resourcePrefix}func'
+    funcCode: funcCode
+    keyVaultName: keyVaultAndUami.outputs.kvName
+    uami: keyVaultAndUami.outputs.uami
+    location:primaryLocation
+    appSettings: appInsightsSettings
   }
 }
 
@@ -77,11 +101,9 @@ module publicApi 'appservice.bicep' = {
     name: '${resourcePrefix}public-api'
     location: primaryAppServicePlan.outputs.planLocation
     serverFarmId: primaryAppServicePlan.outputs.serverFarmId
-    appInsightsId: applicationInsights.outputs.id
-    appInsightsConnectionString: applicationInsights.outputs.connectionString
-    customAppSettings: {
+    customAppSettings: union(appInsightsSettings, {
       UseOnlyInMemoryDatabase:true
-    }
+    })
   }
 }
 

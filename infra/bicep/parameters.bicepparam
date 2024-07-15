@@ -16,3 +16,6 @@ param sqlServerLogin = readEnvironmentVariable('AZURE_SQL_DBA_LOGIN')
 @secure()
 param dbPassword = readEnvironmentVariable('AZURE_SQL_APP_PASS')
 param dbLogin = readEnvironmentVariable('AZURE_SQL_APP_LOGIN')
+
+@secure()
+param funcCode = readEnvironmentVariable('AZURE_FUNC_CODE')

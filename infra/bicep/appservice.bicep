@@ -7,8 +7,7 @@ param allowedOrigins array = []
 param customAppSettings object = {}
 param healthCheckPath string = ''
 param alwaysOn bool = false
-param appInsightsId string = ''
-param appInsightsConnectionString string = ''
+param kind string = 'app,linux'
 
 var webAppProperties = {
   serverFarmId: serverFarmId
@@ -22,22 +21,16 @@ var webAppProperties = {
   }
 }
 
-var appInsightsSettings = empty(appInsightsId) ? {} : {
-  APPINSIGHTS_INSTRUMENTATIONKEY: appInsightsId
-  ApplicationInsightsAgent_EXTENSION_VERSION: '~2'
-  APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsConnectionString 
-}
-
 resource webApplication 'Microsoft.Web/sites@2023-12-01' = {
   name: name
   location: location
-  kind: 'app,linux'
+  kind: kind
   identity: !empty(identity) ? identity : null
   properties: webAppProperties
-
+  
   resource configAppSettings 'config@2023-12-01' = {
     name: 'appsettings'
-    properties: union(customAppSettings, appInsightsSettings, {
+    properties: union(customAppSettings, {
       SCM_DO_BUILD_DURING_DEPLOYMENT: false
       ENABLE_ORYX_BUILD: false
     })
