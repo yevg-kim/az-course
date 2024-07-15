@@ -23,7 +23,10 @@
       "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "CUSTOM_PUBLIC_API_ENDPOINT": "https://localhost:6102"
+        "CUSTOM_PUBLIC_API_ENDPOINT": "https://localhost:6102",
+        "CUSTOM_RESERVE_SERVICE_ENDPOINT": "redacted",
+        "AZURE_FUNCTION_CODE_KEY": "func-code",
+        "func-code": "redacted"
       },
       "applicationUrl": "https://localhost:5001;http://localhost:5000"
     },

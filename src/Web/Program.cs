@@ -14,12 +14,14 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.eShopWeb;
 using Microsoft.eShopWeb.ApplicationCore.Interfaces;
+using Microsoft.eShopWeb.ApplicationCore.Services;
 using Microsoft.eShopWeb.Infrastructure.Data;
 using Microsoft.eShopWeb.Infrastructure.Identity;
 using Microsoft.eShopWeb.Web;
 using Microsoft.eShopWeb.Web.Configuration;
 using Microsoft.eShopWeb.Web.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
@@ -95,19 +97,31 @@ builder.Services.Configure<ServiceConfig>(config =>
     config.Path = "/allservices";
 });
 
-// blazor configuration
 var configSection = builder.Configuration.GetRequiredSection(BaseUrlConfiguration.CONFIG_NAME);
 builder.Services.Configure<BaseUrlConfiguration>(configSection);
 var baseUrlConfig = configSection.Get<BaseUrlConfiguration>();
+
 var envApiBase = builder.Configuration["CUSTOM_PUBLIC_API_ENDPOINT"];
-if(!string.IsNullOrEmpty(envApiBase))
-    builder.Services.PostConfigure<BaseUrlConfiguration>(config => config.ApiBase = UrlHelper.Combine(envApiBase, "api"));
+var reserveServiceApiBase = builder.Configuration["CUSTOM_RESERVE_SERVICE_ENDPOINT"];
+
+builder.Services.PostConfigure<BaseUrlConfiguration>(config => {
+    config.ApiBase = !string.IsNullOrEmpty(envApiBase) ? UrlHelper.Combine(envApiBase, "api") : config.ApiBase;
+});
+
+builder.Services.Configure<ReserveServiceConfiguration>(config => { 
+    config.ApiBase = !string.IsNullOrEmpty(reserveServiceApiBase) ? UrlHelper.Combine(reserveServiceApiBase, "api") : "";
+    config.Code = builder.Configuration[builder.Configuration["AZURE_FUNCTION_CODE_KEY"] ?? ""] ?? string.Empty;
+});
 
 // Blazor Admin Required Services for Prerendering
 builder.Services.AddScoped(s => new HttpClient
 {
     BaseAddress = new Uri(baseUrlConfig!.WebBase)
 });
+
+builder.Services.AddHttpClient<IOrderReserveService, OrderReserveService>((sp, client) => {
+    client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.ApiBase);
+}).AddHttpMessageHandler(sp => new FunctionAppHttpHandler(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.Code));
 
 // add blazor services
 builder.Services.AddBlazoredLocalStorage();
@@ -194,7 +208,6 @@ app.UseRouting();
 app.UseCookiePolicy();
 app.UseAuthentication();
 app.UseAuthorization();
-
 
 app.MapControllerRoute("default", "{controller:slugify=Home}/{action:slugify=Index}/{id?}");
 app.MapRazorPages();
