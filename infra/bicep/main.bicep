@@ -80,7 +80,10 @@ module azureFunction 'azurefunction.bicep' = {
     keyVaultName: keyVaultAndUami.outputs.kvName
     uami: keyVaultAndUami.outputs.uami
     location:primaryLocation
-    appSettings: appInsightsSettings
+    appSettings: union(appInsightsSettings, {
+      COSMOSDB_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${cosmosDb.outputs.connectionStringVaultRef})'
+      COSMOSDB_DATABASE: cosmosDb.outputs.dbName
+    })
   }
 }
 
@@ -126,6 +129,16 @@ module keyVaultAndUami 'keyvault.bicep' = {
   params:{
     keyVaultName: keyVaultName
     managedIdentityName: '${resourcePrefix}managed-identity'
+  }
+}
+
+module cosmosDb 'cosmosdb.bicep' = {
+  name: 'cosmosDbDeployment'
+  params:{
+    keyVaultName: keyVaultAndUami.outputs.kvName
+    location: primaryLocation
+    name: 'azcourse-cosmosdb-account'
+    uami: keyVaultAndUami.outputs.uami
   }
 }
 

@@ -110,7 +110,7 @@ builder.Services.PostConfigure<BaseUrlConfiguration>(config => {
 
 builder.Services.Configure<ReserveServiceConfiguration>(config => { 
     config.ApiBase = !string.IsNullOrEmpty(reserveServiceApiBase) ? UrlHelper.Combine(reserveServiceApiBase, "api") : "";
-    config.Code = builder.Configuration[builder.Configuration["AZURE_FUNCTION_CODE_KEY"] ?? ""] ?? string.Empty;
+    config.Code = builder.Configuration[builder.Configuration["AZURE_FUNCTION_CODE_KEY"] ?? ""] ?? "";
 });
 
 // Blazor Admin Required Services for Prerendering
@@ -119,7 +119,12 @@ builder.Services.AddScoped(s => new HttpClient
     BaseAddress = new Uri(baseUrlConfig!.WebBase)
 });
 
-builder.Services.AddHttpClient<IOrderReserveService, OrderReserveService>((sp, client) => {
+builder.Services.AddHttpClient<IOrderReserveService, OrderReserveService>((sp, client) =>
+{
+    client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.ApiBase);
+}).AddHttpMessageHandler(sp => new FunctionAppHttpHandler(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.Code));
+
+builder.Services.AddHttpClient<IOrderSubmitService, OrderSubmitService>((sp, client) => {
     client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.ApiBase);
 }).AddHttpMessageHandler(sp => new FunctionAppHttpHandler(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.Code));
 

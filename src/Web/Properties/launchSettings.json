@@ -24,7 +24,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "CUSTOM_PUBLIC_API_ENDPOINT": "https://localhost:6102",
-        "CUSTOM_RESERVE_SERVICE_ENDPOINT": "redacted",
+        "CUSTOM_RESERVE_SERVICE_ENDPOINT": "https://localhost:6102",
         "AZURE_FUNCTION_CODE_KEY": "func-code",
         "func-code": "redacted"
       },

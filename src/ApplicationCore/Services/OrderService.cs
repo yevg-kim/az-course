@@ -5,9 +5,10 @@ using Ardalis.GuardClauses;
 using Microsoft.eShopWeb.ApplicationCore.Entities;
 using Microsoft.eShopWeb.ApplicationCore.Entities.BasketAggregate;
 using Microsoft.eShopWeb.ApplicationCore.Entities.OrderAggregate;
+using Microsoft.eShopWeb.ApplicationCore.Extensions;
 using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.eShopWeb.ApplicationCore.Specifications;
-
+using CommonModels = BlazorShared.Models;
 namespace Microsoft.eShopWeb.ApplicationCore.Services;
 
 public class OrderService : IOrderService
@@ -17,18 +18,21 @@ public class OrderService : IOrderService
     private readonly IRepository<Basket> _basketRepository;
     private readonly IRepository<CatalogItem> _itemRepository;
     private readonly IOrderReserveService _orderReserveService;
+    private readonly IOrderSubmitService _orderSubmitService;
 
     public OrderService(IRepository<Basket> basketRepository,
         IRepository<CatalogItem> itemRepository,
         IRepository<Order> orderRepository,
         IUriComposer uriComposer,
-        IOrderReserveService orderReserveService)
+        IOrderReserveService orderReserveService,
+        IOrderSubmitService orderSubmitService)
     {
         _orderRepository = orderRepository;
         _uriComposer = uriComposer;
         _basketRepository = basketRepository;
         _itemRepository = itemRepository;
         _orderReserveService = orderReserveService;
+        _orderSubmitService = orderSubmitService;
     }
 
     public async Task CreateOrderAsync(int basketId, Address shippingAddress)
@@ -52,9 +56,13 @@ public class OrderService : IOrderService
 
         var order = new Order(basket.BuyerId, shippingAddress, items);
 
+        Console.WriteLine(order.ToOrderSubmitRequest());
+
         await _orderRepository.AddAsync(order);
 
         foreach (var item in items)
-            await _orderReserveService.Reserve(new BlazorShared.Models.OrderReserveRequest(DateTime.Now, item.Id, item.Units));
+            await _orderReserveService.Reserve(new CommonModels.OrderReserveRequest(DateTime.Now, item.Id, item.Units));
+
+        await _orderSubmitService.SubmitForDelivery(order.ToOrderSubmitRequest());
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using System.Text.Json.Serialization;
 using Azure.Storage.Blobs;
 using BlazorShared.Models;
 using Microsoft.AspNetCore.Http;
@@ -7,26 +6,23 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
-namespace Azcourse.ReserveFunction
+namespace Azcourse.Functions
 {
     public class ReserveTrigger
     {
         private readonly ILogger<ReserveTrigger> _logger;
         private readonly BlobContainerClient _blobContainerClient;
-        public ReserveTrigger(ILogger<ReserveTrigger> logger)
+        public ReserveTrigger(ILogger<ReserveTrigger> logger, BlobContainerClient blobContainerClient)
         {
-            var connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
-
             _logger = logger;
-            _blobContainerClient = new BlobServiceClient(connectionString)
-                .GetBlobContainerClient("reserves");
+            _blobContainerClient = blobContainerClient;
 
-            if(!_blobContainerClient.Exists())
+            if (!_blobContainerClient.Exists())
                 _blobContainerClient.Create();
         }
 
-        [Function("ReserveTrigger")]
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "reserve")] HttpRequest req)
+        [Function(nameof(ReserveTrigger))]
+        public async Task<IActionResult> RunReserve([HttpTrigger(AuthorizationLevel.Function, "post", Route = "reserve")] HttpRequest req)
         {
             var requestBody = await req.ReadFromJsonAsync<OrderReserveRequest>();
             if (requestBody is null || requestBody.ItemId <= 0 || requestBody.Quantity <= 0) {

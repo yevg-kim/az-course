@@ -41,6 +41,7 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
   location: location
   identity: uami
   properties: {
+    keyVaultReferenceIdentity: objectKeys(json(string(uami)).userAssignedIdentities)[0]
     enabled: true
     serverFarmId: azHostingPlan.id
     siteConfig: {
@@ -91,7 +92,6 @@ var keyName = 'persistent-main-key'
 resource deploymentScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: 'inlineCLI'
   location: location
-  dependsOn: [func]
   kind: 'AzureCLI'
   identity: uami
   properties: {
