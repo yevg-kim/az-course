@@ -11,6 +11,7 @@ param kind string = 'app,linux'
 
 var webAppProperties = {
   serverFarmId: serverFarmId
+  keyVaultReferenceIdentity: objectKeys(json(string(identity)).userAssignedIdentities)[0]
   siteConfig:{
     healthCheckPath: healthCheckPath
     linuxFxVersion:'dotnetcore|8.0'
@@ -43,6 +44,7 @@ resource webApplication 'Microsoft.Web/sites@2023-12-01' = {
   resource secondDeploymentSlot 'slots@2023-12-01' = if(secondDeploymentSlotName != 'not-set') {
     name: secondDeploymentSlotName
     location: location
+    identity: !empty(identity) ? identity : null
     properties: webAppProperties
   }
 }

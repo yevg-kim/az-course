@@ -145,5 +145,5 @@ resource keyVaultFuncCode 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
-output funcCodeKey string = keyVaultFuncCode.name
+output funcCodeRef string = keyVaultFuncCode.properties.secretUri
 output funcUrl string = 'https://${appService.properties.defaultHostName}'

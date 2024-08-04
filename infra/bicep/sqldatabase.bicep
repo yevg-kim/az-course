@@ -95,5 +95,5 @@ resource keyVaultConnectionString 'Microsoft.KeyVault/vaults/secrets@2023-07-01'
   }
 }
 
-output keyVaultConnectionStringKey string = keyVaultConnectionStringKey
+output keyVaultConnectionStringRef string = keyVaultConnectionString.properties.secretUri
 output databaseName string = sqlServerDatabase.name

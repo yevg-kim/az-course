@@ -13,11 +13,12 @@ param sqlServerPassword string
 param dbPassword string
 @secure()
 param funcCode string
+param deploymentSuffix string = substring(newGuid(), 0, 8)
 
-var resourcePrefix = 'azcourse-'
+var resourcePrefix = 'azcourseA9J523I-'
 
 module primaryAppServicePlan 'appserviceplan.bicep' = {
-  name: 'primaryAspDeployment'
+  name: 'primaryAspDeployment-${deploymentSuffix}'
   params:{
     name: '${resourcePrefix}primary-service-plan'
     location: primaryLocation
@@ -26,7 +27,7 @@ module primaryAppServicePlan 'appserviceplan.bicep' = {
 }
 
 module secondaryAppServicePlan 'appserviceplan.bicep' = {
-  name: 'secondaryAspDeployment'
+  name: 'secondaryAspDeployment-${deploymentSuffix}'
   params:{
     name: '${resourcePrefix}secondary-service-plan'
     location: secondaryLocation
@@ -37,16 +38,16 @@ module secondaryAppServicePlan 'appserviceplan.bicep' = {
 var webAppCommonSettings = union (appInsightsSettings, {
   ASPNETCORE_ENVIRONMENT:'Production'
   AZURE_CLIENT_ID: keyVaultAndUami.outputs.uamiClientId
-  AZURE_SQL_IDENTITY_CONNECTION_STRING_KEY: db[0].outputs.keyVaultConnectionStringKey
-  AZURE_SQL_CATALOG_CONNECTION_STRING_KEY: db[1].outputs.keyVaultConnectionStringKey
+  AZURE_SQL_IDENTITY_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${db[0].outputs.keyVaultConnectionStringRef})' 
+  AZURE_SQL_CATALOG_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${db[1].outputs.keyVaultConnectionStringRef})'
   CUSTOM_RESERVE_SERVICE_ENDPOINT: azureFunction.outputs.funcUrl
-  AZURE_FUNCTION_CODE_KEY: azureFunction.outputs.funcCodeKey
+  AZURE_FUNCTION_CODE: '@Microsoft.KeyVault(SecretUri=${azureFunction.outputs.funcCodeRef})' //azureFunction.outputs.funcCodeKey
   AZURE_KEY_VAULT_ENDPOINT: keyVaultAndUami.outputs.kvEndpoint
   CUSTOM_PUBLIC_API_ENDPOINT: publicApi.outputs.url
 })
 
 module applicationInsights 'appinsights.bicep' = {
-  name: 'applicationInsightsDeployment'
+  name: 'applicationInsightsDeployment-${deploymentSuffix}'
   params:{
     name: '${resourcePrefix}app-insights'
   }
@@ -59,7 +60,7 @@ var appInsightsSettings = {
 }
 
 module primaryWebApp 'appservice.bicep' = {
-  name: 'primaryWebAppDeployment'
+  name: 'primaryWebAppDeployment-${deploymentSuffix}'
   params:{
     name: '${resourcePrefix}web-app-primary'
     location: primaryAppServicePlan.outputs.planLocation
@@ -71,7 +72,7 @@ module primaryWebApp 'appservice.bicep' = {
 }
 
 module azureFunction 'azurefunction.bicep' = {
-  name: 'appFunctionDeployment'
+  name: 'appFunctionDeployment-${deploymentSuffix}'
   params:{
     appName:'${resourcePrefix}func-app'
     planName:'${resourcePrefix}func-plan'
@@ -88,7 +89,7 @@ module azureFunction 'azurefunction.bicep' = {
 }
 
 module secondaryWebApp 'appservice.bicep' = {
-  name: 'secondaryWebAppDeployment'
+  name: 'secondaryWebAppDeployment-${deploymentSuffix}'
   params:{
     name: '${resourcePrefix}web-app-secondary'
     location: secondaryAppServicePlan.outputs.planLocation
@@ -99,11 +100,12 @@ module secondaryWebApp 'appservice.bicep' = {
 }
 
 module publicApi 'appservice.bicep' = {
-  name: 'publicApiDeployment'
+  name: 'publicApiDeployment-${deploymentSuffix}'
   params:{
     name: '${resourcePrefix}public-api'
     location: primaryAppServicePlan.outputs.planLocation
     serverFarmId: primaryAppServicePlan.outputs.serverFarmId
+    identity: keyVaultAndUami.outputs.uami
     customAppSettings: union(appInsightsSettings, {
       UseOnlyInMemoryDatabase:true
     })
@@ -111,7 +113,7 @@ module publicApi 'appservice.bicep' = {
 }
 
 module publicApiSettings 'appsettings.bicep' = {
-  name: 'publicApiSettingsDeployment'
+  name: 'publicApiSettingsDeployment-${deploymentSuffix}'
   params: {
     websiteName: publicApi.outputs.name
     settingsType: 'web'
@@ -125,7 +127,7 @@ module publicApiSettings 'appsettings.bicep' = {
 }
 
 module keyVaultAndUami 'keyvault.bicep' = {
-  name: 'keyVaultAndManagedIdentityDeployment'
+  name: 'keyVaultAndManagedIdentityDeployment-${deploymentSuffix}'
   params:{
     keyVaultName: keyVaultName
     managedIdentityName: '${resourcePrefix}managed-identity'
@@ -133,7 +135,7 @@ module keyVaultAndUami 'keyvault.bicep' = {
 }
 
 module cosmosDb 'cosmosdb.bicep' = {
-  name: 'cosmosDbDeployment'
+  name: 'cosmosDbDeployment-${deploymentSuffix}'
   params:{
     keyVaultName: keyVaultAndUami.outputs.kvName
     location: primaryLocation
@@ -143,7 +145,7 @@ module cosmosDb 'cosmosdb.bicep' = {
 }
 
 module sqlServer 'sqlserver.bicep' = {
-  name: 'sqlServerDeployment'
+  name: 'sqlServerDeployment-${deploymentSuffix}'
   params: {
     location: sqlServerLocation
     dbLogin: dbLogin
@@ -165,7 +167,7 @@ var databaseParams = [{
 },]
 
 module db 'sqldatabase.bicep' = [for database in databaseParams: {
-  name: '${database.name}Deployment'
+  name: '${database.name}Deployment-${deploymentSuffix}'
   params: {
     sqlServerName: sqlServer.outputs.name
     location: sqlServerLocation
@@ -180,7 +182,7 @@ module db 'sqldatabase.bicep' = [for database in databaseParams: {
 }]
 
 module trafficManager 'trafficmanager.bicep' = {
-  name: 'trafficManagerDeployment'
+  name: 'trafficManagerDeployment-${deploymentSuffix}'
   params: {
     name: '${resourcePrefix}traffic-manager'
     url: '${resourcePrefix}tm'
@@ -198,7 +200,7 @@ module trafficManager 'trafficmanager.bicep' = {
 }
 
 module autoScale 'autoscale.bicep' = {
-  name: 'autoScaleDeployment'
+  name: 'autoScaleDeployment-${deploymentSuffix}'
   params: {
     location: primaryAppServicePlan.outputs.planLocation
     name: '${resourcePrefix}auto-scale'
