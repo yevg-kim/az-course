@@ -6,6 +6,8 @@ artifact_web="$base_folder/publish-web"
 artifact_public_api="$base_folder/publish-public-api"
 artifact_reserve_func="$base_folder/publish-reserve-func"
 
+az account set -s 'Visual Studio Professional Subscription'
+
 artifact=$artifact_web
 find $base_folder -type d -wholename "$artifact*" -exec rm -rf {} +
 dotnet publish "$base_folder/src/Web/Web.csproj" --configuration Release -o "$artifact/" -r 'linux-x64'
