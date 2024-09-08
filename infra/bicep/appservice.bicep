@@ -7,14 +7,17 @@ param allowedOrigins array = []
 param customAppSettings object = {}
 param healthCheckPath string = ''
 param alwaysOn bool = false
-param kind string = 'app,linux'
+param kind string = 'app,linux,container'
+param linuxFxVersion string
 
 var webAppProperties = {
   serverFarmId: serverFarmId
   keyVaultReferenceIdentity: objectKeys(json(string(identity)).userAssignedIdentities)[0]
   siteConfig:{
     healthCheckPath: healthCheckPath
-    linuxFxVersion:'dotnetcore|8.0'
+    detailedErrorLoggingEnabled: true
+    acrUseManagedIdentityCreds: false
+    linuxFxVersion: linuxFxVersion
     alwaysOn: alwaysOn
     cors:{
       allowedOrigins: allowedOrigins
@@ -44,6 +47,7 @@ resource webApplication 'Microsoft.Web/sites@2023-12-01' = {
   resource secondDeploymentSlot 'slots@2023-12-01' = if(secondDeploymentSlotName != 'not-set') {
     name: secondDeploymentSlotName
     location: location
+    kind: kind
     identity: !empty(identity) ? identity : null
     properties: webAppProperties
   }

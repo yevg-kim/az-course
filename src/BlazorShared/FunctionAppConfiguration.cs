@@ -1,6 +1,6 @@
 ﻿namespace BlazorShared;
 
-public class ReserveServiceConfiguration
+public class FunctionAppConfiguration
 {
     public string ApiBase { get; set; }
     public string Code { get; set; }

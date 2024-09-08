@@ -26,15 +26,17 @@ public static class Dependencies
         }
         else
         {
-            // use real database
-            // Requires LocalDB which can be installed with SQL Server Express 2016
-            // https://www.microsoft.com/en-us/download/details.aspx?id=54284
             services.AddDbContext<CatalogContext>(c =>
-                c.UseSqlServer(configuration.GetConnectionString("CatalogConnection")));
+            {
+                string? connectionString = configuration["AZURE_SQL_CATALOG_CONNECTION_STRING"];
+                c.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure());
+            });
 
-            // Add Identity DbContext
             services.AddDbContext<AppIdentityDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("IdentityConnection")));
+            {
+                string? connectionString = configuration["AZURE_SQL_IDENTITY_CONNECTION_STRING"];
+                options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure());
+            });
         }
     }
 }

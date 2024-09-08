@@ -8,5 +8,11 @@
       },
       "enableLiveMetricsFilters": true
     }
+  },
+  "extensions": {
+    "queues": {
+      "maxPollingInterval": "00:00:01",
+      "maxDequeueCount": 3
+    }
   }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using AzureFunctions.MongoDBDriver;
 using ReserveFunctionApp.Extensions;
+using BlazorShared;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication()
@@ -12,7 +13,8 @@ var host = new HostBuilder()
             .ConfigureFunctionsApplicationInsights()
             .AddBlobContainerClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"))
             .AddMongoDBClient(Environment.GetEnvironmentVariable("COSMOSDB_CONNECTION_STRING"),
-                              Environment.GetEnvironmentVariable("COSMOSDB_DATABASE"));
+                              Environment.GetEnvironmentVariable("COSMOSDB_DATABASE"))
+            .Configure<AzureServiceBusConfiguration>(config => config.FullConnectionString = Environment.GetEnvironmentVariable("AzureWebJobsServiceBus") ?? "");
     })
     .Build();
 

@@ -56,8 +56,6 @@ public class OrderService : IOrderService
 
         var order = new Order(basket.BuyerId, shippingAddress, items);
 
-        Console.WriteLine(order.ToOrderSubmitRequest());
-
         await _orderRepository.AddAsync(order);
 
         foreach (var item in items)

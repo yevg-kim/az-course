@@ -1,7 +1,7 @@
-﻿using System.Net.Mime;
+﻿using System.Diagnostics;
+using System.Net.Mime;
 using System.Runtime.InteropServices;
 using Ardalis.ListStartupServices;
-using Azure.Identity;
 using BlazorAdmin;
 using BlazorAdmin.Services;
 using Blazored.LocalStorage;
@@ -9,6 +9,7 @@ using BlazorShared;
 using BlazorShared.Helpers;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
@@ -20,31 +21,23 @@ using Microsoft.eShopWeb.Infrastructure.Identity;
 using Microsoft.eShopWeb.Web;
 using Microsoft.eShopWeb.Web.Configuration;
 using Microsoft.eShopWeb.Web.HealthChecks;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
+
+StaticWebAssetsLoader.UseStaticWebAssets(builder.Environment, builder.Configuration);
+
 builder.Logging.AddConsole();
 
-if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Docker")){
-    // Configure SQL Server (local)
-    Microsoft.eShopWeb.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
-}
-else{
-    // Configure SQL Server (prod)
-    builder.Services.AddDbContext<CatalogContext>(c =>
-    {
-        string? connectionString = builder.Configuration["AZURE_SQL_CATALOG_CONNECTION_STRING"];
-        c.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure());
-    });
-    builder.Services.AddDbContext<AppIdentityDbContext>(options =>
-    {
-        string? connectionString = builder.Configuration["AZURE_SQL_IDENTITY_CONNECTION_STRING"];
-        options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure());
-    });
-}
+if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Docker")
+    Environment.SetEnvironmentVariable("UseOnlyInMemoryDatabase", bool.TrueString);
+
+Microsoft.eShopWeb.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
 builder.Services.AddCookieSettings();
+//builder.Services.AddDataProtection().PersistKeysToAzureBlobStorage();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -100,15 +93,19 @@ builder.Services.Configure<BaseUrlConfiguration>(configSection);
 var baseUrlConfig = configSection.Get<BaseUrlConfiguration>();
 
 var envApiBase = builder.Configuration["CUSTOM_PUBLIC_API_ENDPOINT"];
-var reserveServiceApiBase = builder.Configuration["CUSTOM_RESERVE_SERVICE_ENDPOINT"];
+var functionAppApiBase = builder.Configuration["CUSTOM_RESERVE_SERVICE_ENDPOINT"];
 
 builder.Services.PostConfigure<BaseUrlConfiguration>(config => {
     config.ApiBase = !string.IsNullOrEmpty(envApiBase) ? UrlHelper.Combine(envApiBase, "api") : config.ApiBase;
 });
 
-builder.Services.Configure<ReserveServiceConfiguration>(config => { 
-    config.ApiBase = !string.IsNullOrEmpty(reserveServiceApiBase) ? UrlHelper.Combine(reserveServiceApiBase, "api") : "";
-    config.Code = builder.Configuration[builder.Configuration["AZURE_FUNCTION_CODE"] ?? ""] ?? "";
+builder.Services.Configure<FunctionAppConfiguration>(config => { 
+    config.ApiBase = !string.IsNullOrEmpty(functionAppApiBase) ? UrlHelper.Combine(functionAppApiBase, "api") : "";
+    config.Code = builder.Configuration["AZURE_FUNCTION_CODE"] ?? "";
+});
+
+builder.Services.Configure<AzureServiceBusConfiguration>(config => {
+    config.FullConnectionString = builder.Configuration["ASB_SEND_CONNECTION_STRING"] ?? "";
 });
 
 // Blazor Admin Required Services for Prerendering
@@ -117,14 +114,12 @@ builder.Services.AddScoped(s => new HttpClient
     BaseAddress = new Uri(baseUrlConfig!.WebBase)
 });
 
-builder.Services.AddHttpClient<IOrderReserveService, OrderReserveService>((sp, client) =>
-{
-    client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.ApiBase);
-}).AddHttpMessageHandler(sp => new FunctionAppHttpHandler(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.Code));
-
 builder.Services.AddHttpClient<IOrderSubmitService, OrderSubmitService>((sp, client) => {
-    client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.ApiBase);
-}).AddHttpMessageHandler(sp => new FunctionAppHttpHandler(sp.GetRequiredService<IOptions<ReserveServiceConfiguration>>().Value.Code));
+    client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<FunctionAppConfiguration>>().Value.ApiBase);
+}).AddHttpMessageHandler(sp => new FunctionAppHttpHandler(sp.GetRequiredService<IOptions<FunctionAppConfiguration>>().Value.Code));
+
+builder.Services.AddSingleton<IOrderReserveService, OrderReserveService>();
+builder.Services.AddAzureClients(clientsBuilder => clientsBuilder.AddServiceBusClient(builder.Configuration["ASB_SEND_CONNECTION_STRING"]).WithName("ReserveAsbClient"));
 
 // add blazor services
 builder.Services.AddBlazoredLocalStorage();
@@ -203,7 +198,6 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.UseRouting();

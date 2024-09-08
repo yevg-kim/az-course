@@ -2,9 +2,9 @@ using 'main.bicep'
 
 param keyVaultName = readEnvironmentVariable('AZURE_KEYVAULT_NAME')
 
-param primaryLocation = 'northeurope'
-param secondaryLocation = 'westeurope'
-param sqlServerLocation = primaryLocation
+param primaryLocation = 'westeurope'
+param secondaryLocation = 'northeurope'
+param databasesLocation = secondaryLocation
 
 // For test purposes, passwords are set in env. variables, 
 // but better alternative would be to use deployment script to generate random passwords
@@ -19,3 +19,5 @@ param dbLogin = readEnvironmentVariable('AZURE_SQL_APP_LOGIN')
 
 @secure()
 param funcCode = readEnvironmentVariable('AZURE_FUNC_CODE')
+
+param resourceCommonPart = 'azcourseA9J52F3I'

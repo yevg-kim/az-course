@@ -24,9 +24,9 @@ public class ApiHealthCheck : IHealthCheck
         var pageContents = await response.Content.ReadAsStringAsync();
         if (pageContents.Contains(".NET Bot Black Sweatshirt"))
         {
-            return HealthCheckResult.Healthy("The check indicates a healthy result.");
+            return HealthCheckResult.Healthy($"The {nameof(ApiHealthCheck)} check indicates a healthy result.");
         }
 
-        return HealthCheckResult.Unhealthy("The check indicates an unhealthy result.");
+        return HealthCheckResult.Unhealthy($"The {nameof(ApiHealthCheck)} check indicates an unhealthy result.");
     }
 }
